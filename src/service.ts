@@ -26,7 +26,7 @@ import is from 'is';
 import pify from 'pify';
 import r from 'request';
 
-import {StreamRequestOptions} from './service-object';
+import {StreamRequestOptions, StreamableRequest} from './service-object';
 import {BodyResponseCallback, DecorateRequestOptions, MakeAuthenticatedRequest, PackageJson, util} from './util';
 
 const PROJECT_ID_TOKEN = '{{projectId}}';
@@ -56,7 +56,7 @@ export interface ServiceOptions {
   token?: string;
 }
 
-export class Service {
+export class Service implements StreamableRequest {
   baseUrl: string;
   private globalInterceptors: {};
   private interceptors: Array<{request(opts: r.Options): r.Options}>;
@@ -64,7 +64,7 @@ export class Service {
   projectId: string;
   private projectIdRequired: boolean;
   // tslint:disable-next-line:variable-name
-  Promise: PromiseConstructor;
+  readonly Promise: PromiseConstructor;
   makeAuthenticatedRequest: MakeAuthenticatedRequest;
   authClient: GoogleAuth;
   private getCredentials: {};

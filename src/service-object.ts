@@ -100,6 +100,18 @@ export interface StreamRequestOptions extends DecorateRequestOptions {
   shouldReturnStream: true;
 }
 
+export interface StreamableRequest {
+  Promise: PromiseConstructor;
+
+  request(reqOpts: DecorateRequestOptions): Promise<r.Response>;
+  request(reqOpts: DecorateRequestOptions, callback: BodyResponseCallback):
+      void;
+  request(reqOpts: DecorateRequestOptions, callback?: BodyResponseCallback):
+      void|Promise<r.Response>;
+
+  requestStream(reqOpts: DecorateRequestOptions): r.Request;
+}
+
 /**
  * ServiceObject is a base class, meant to be inherited from by a "service
  * object," like a BigQuery dataset or Storage bucket.
@@ -111,16 +123,16 @@ export interface StreamRequestOptions extends DecorateRequestOptions {
  * shared behaviors. Note that any method can be overridden when the service
  * object requires specific behavior.
  */
-class ServiceObject extends EventEmitter {
+class ServiceObject extends EventEmitter implements StreamableRequest {
   metadata: {};
   baseUrl?: string;
-  protected parent: Service;
+  protected parent: StreamableRequest;
   private id?: string;
   private createMethod?: Function;
   protected methods: Methods;
   private interceptors: Interceptor[];
   // tslint:disable-next-line:variable-name
-  protected Promise?: PromiseConstructor;
+  readonly Promise: PromiseConstructor;
   // tslint:disable-next-line:no-any
   [index: string]: any;
 
@@ -139,8 +151,9 @@ class ServiceObject extends EventEmitter {
    * @param {object} config.methods[].reqOpts - Default request options for this
    *     particular method. A common use case is when `setMetadata` requires a
    *     `PUT` method to override the default `PATCH`.
-   * @param {object} config.parent - The parent service instance. For example, an
-   *     instance of Storage if the object is Bucket.
+   * @param {object} config.parent - The parent Service or ServiceObject instance.
+   *     For example, an instance of Storage if the object is Bucket, or
+   *     an instance of Bucket if the object is File.
    */
   constructor(config: ServiceObjectConfig) {
     super();
@@ -151,7 +164,7 @@ class ServiceObject extends EventEmitter {
     this.createMethod = config.createMethod;
     this.methods = config.methods || {};
     this.interceptors = [];
-    this.Promise = this.parent ? this.parent.Promise : undefined;
+    this.Promise = this.parent ? this.parent.Promise : Promise;
 
     if (config.methods) {
       Object.getOwnPropertyNames(ServiceObject.prototype)
